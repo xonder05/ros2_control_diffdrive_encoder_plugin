@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="robot">
+
+    <xacro:arg name="use_sim" default="false"/>
+
+    <xacro:include filename="properties.xacro"/>
+    <xacro:include filename="ros2_control.xacro"/>
+    <xacro:include filename="components.xacro"/>
+    <xacro:include filename="sensors.xacro"/>
+
+    <!-- robot -->
+    <link name="base_link"/>
+
+    <!-- <link name="base_footprint"/> -->
+    <!-- <xacro:fixed_joint name="base_footprint" parent="base_link" child="base_footprint"/> -->
+
+    <xacro:box_link name="chassis" mass="2" x="${chassis_length}" y="${chassis_width}" z="${chassis_height}" material="black"/>  
+    <!-- <xacro:imu/> -->
+    <xacro:fixed_joint name="chassis" parent="base_link" child="chassis" origin_position="0 0 0.1"/>
+
+    <xacro:diff_drive/>
+
+</robot>

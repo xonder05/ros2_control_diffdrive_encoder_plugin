@@ -1,0 +1,203 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+<!-- basic building blocks -->
+
+<xacro:macro name="box_link" params="name mass x y z material:=red">
+
+    <link name="${name}">
+        <inertial>
+            <mass value="${mass}" />
+            <inertia ixx="${(1/12) * mass * (y*y+z*z)}" ixy="0.0" ixz="0.0"
+                     iyy="${(1/12) * mass * (x*x+z*z)}" iyz="0.0"
+                     izz="${(1/12) * mass * (x*x+y*y)}" />
+        </inertial>
+        <visual>
+            <geometry>
+                <box size="${x} ${y} ${z}"/>
+            </geometry>
+            <material name="${material}"/>
+        </visual>
+        <collision>
+            <geometry>
+                <box size="${x} ${y} ${z}"/>
+            </geometry>
+        </collision>
+    </link>
+
+</xacro:macro>
+
+<xacro:macro name="cylinder_link" params="name mass radius length material:=red">
+  
+    <link name="${name}">
+        <inertial>
+            <mass value="${mass}" />
+            <inertia ixx="${(1/12) * mass * (3*radius*radius + length*length)}" ixy="0.0" ixz="0.0"
+                     iyy="${(1/12) * mass * (3*radius*radius + length*length)}" iyz="0.0"
+                     izz="${(1/2) * mass * (radius*radius)}" />
+        </inertial>
+        <visual>
+            <geometry>
+                <cylinder radius="${radius}" length="${length}"/>
+            </geometry>
+            <material name="${material}"/>
+        </visual>
+        <collision>
+            <geometry>
+                <cylinder radius="${radius}" length="${length}"/>
+            </geometry>
+        </collision>
+    </link>
+
+</xacro:macro>
+
+<xacro:macro name="fixed_joint" params="name parent:=chassis child origin_position:='0 0 0' origin_orientation:='0 0 0'">
+
+    <joint name="${name}_joint" type="fixed">
+        <parent link="${parent}"/>
+        <child link="${child}"/>
+        <origin xyz="${origin_position}" rpy="${origin_orientation}"/>
+    </joint>
+
+</xacro:macro>
+
+<xacro:macro name="continuous_joint" params="name parent:=chassis child origin_position:='0 0 0' origin_orientation:='0 0 0' axis='0 0 0'">
+    
+    <joint name="${name}_joint" type="continuous">
+        <parent link="${parent}"/>
+        <child link="${child}"/>
+        <origin xyz="${origin_position}" rpy="${origin_orientation}"/>
+        <axis xyz="${axis}"/>
+    </joint>
+
+</xacro:macro>
+
+<!-- output components -->
+
+<xacro:macro name="diff_drive_old" params="">
+
+    <xacro:cylinder_link name="left_front_wheel" mass="0.05" radius="${wheel_radius}" length="0.02" material="yellow"/>
+    <xacro:continuous_joint name="left_front_wheel" child="left_front_wheel" origin_position="0.045 0.075 -0.025" origin_orientation="-1.5707 0 0" axis="0 0 1"/>
+    
+    <xacro:cylinder_link name="right_front_wheel" mass="0.05" radius="${wheel_radius}" length="0.02" material="yellow"/>    
+    <xacro:continuous_joint name="right_front_wheel" child="right_front_wheel" origin_position="0.045 -0.075 -0.025" origin_orientation="-1.5707 0 0" axis="0 0 1"/>
+
+    <xacro:cylinder_link name="left_rear_wheel" mass="0.05" radius="${wheel_radius}" length="0.02" material="yellow"/>    
+    <xacro:continuous_joint name="left_rear_wheel" child="left_rear_wheel" origin_position="-0.05 0.075 -0.025" origin_orientation="-1.5707 0 0" axis="0 0 1"/>
+
+    <xacro:cylinder_link name="right_rear_wheel" mass="0.05" radius="${wheel_radius}" length="0.02" material="yellow"/>    
+    <xacro:continuous_joint name="right_rear_wheel" child="right_rear_wheel" origin_position="-0.05 -0.075 -0.025" origin_orientation="-1.5707 0 0" axis="0 0 1"/>
+
+    <xacro:if value="$(arg use_sim)">
+        <ros2_control name="GazeboSimSystem" type="system">
+            <hardware>
+                <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+            </hardware>
+            <joint name="left_front_wheel_joint">
+                <command_interface name="velocity">
+                    <param name="min">-100</param>
+                    <param name="max">100</param>
+                </command_interface>
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+            </joint>
+            <joint name="right_front_wheel_joint">
+                <command_interface name="velocity">
+                    <param name="min">-100</param>
+                    <param name="max">100</param>
+                </command_interface>
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+            </joint>
+            <joint name="left_rear_wheel_joint">
+                <command_interface name="velocity">
+                    <param name="min">-100</param>
+                    <param name="max">100</param>
+                </command_interface>
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+            </joint>
+            <joint name="right_rear_wheel_joint">
+                <command_interface name="velocity">
+                    <param name="min">-100</param>
+                    <param name="max">100</param>
+                </command_interface>
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+            </joint>
+        </ros2_control>
+    </xacro:if>
+    
+    <xacro:unless value="$(arg use_sim)">
+        <ros2_control name="GazeboRealSystem" type="system">
+            <hardware>
+                <plugin>adeept_awr_diffdrive_control_plugin/AdeeptDiffDriveHardware</plugin>
+                <param name="motor_left_enable_pin">4</param>
+                <param name="motor_left_forward_pin">21</param>
+                <param name="motor_left_backward_pin">26</param>
+                <param name="motor_right_enable_pin">17</param>
+                <param name="motor_right_forward_pin">18</param>
+                <param name="motor_right_backward_pin">27</param>
+                <param name="max_motor_rotation_speed">18.0</param>
+            </hardware>
+            <joint name="left_front_wheel_joint">
+                <command_interface name="velocity">
+                    <param name="min">-100</param>
+                    <param name="max">100</param>
+                </command_interface>
+            </joint>
+            <joint name="right_front_wheel_joint">
+                <command_interface name="velocity">
+                    <param name="min">-100</param>
+                    <param name="max">100</param>
+                </command_interface>
+            </joint>
+            <joint name="left_rear_wheel_joint">
+                <command_interface name="velocity">
+                    <param name="min">-100</param>
+                    <param name="max">100</param>
+                </command_interface>
+                </joint>
+            <joint name="right_rear_wheel_joint">
+                <command_interface name="velocity">
+                    <param name="min">-100</param>
+                    <param name="max">100</param>
+                </command_interface>
+            </joint>
+        </ros2_control>
+    </xacro:unless>
+
+    <gazebo>
+        <plugin filename="/opt/ros/jazzy/lib/libgz_ros2_control-system.so" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+            <parameters>$(find adeept_awr_diffdrive_control_plugin)/config/controllers.yaml</parameters>
+            <parameters>$(find adeept_awr_diffdrive_control_plugin)/config/controllers_sim.yaml</parameters>
+            <ros>
+                <remapping>/diff_drive_controller/cmd_vel:=/cmd_vel</remapping>
+                <!-- <remapping>/robot_description:=/controller_manager/robot_description</remapping> no longer needed --> 
+            </ros>
+        </plugin>
+    </gazebo>
+
+</xacro:macro>
+
+<xacro:macro name="servo" params="name parent:=chassis child 
+                                origin_position:='0 0 0' origin_orientation:='0 0 0' axis='0 0 0'
+                                limit_lower:=-3.14, limit_upper:=3.14">
+    
+    <joint name="${name}_joint" type="revolute">
+        <parent link="${parent}"/>
+        <child link="${child}"/>
+        <origin xyz="${origin_position}" rpy="${origin_orientation}"/>
+        <axis xyz="${axis}"/>
+        <limit lower="${limit_lower}" upper="${limit_upper}" effort="10" velocity="3.14"/>
+    </joint>
+    
+    <gazebo>
+        <plugin name="ignition::gazebo::systems::JointController" filename="libignition-gazebo-joint-controller-system.so">
+            <joint_name>${name}_joint</joint_name>
+        </plugin>
+    </gazebo>
+
+</xacro:macro>
+
+</robot>

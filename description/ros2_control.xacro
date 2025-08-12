@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:macro name="diff_drive" params="">
+
+    <!-- wheels -->
+    <xacro:cylinder_link name="left_wheel" mass="0.05" radius="${wheel_radius}" length="0.02" material="yellow"/>
+    <xacro:continuous_joint name="left_wheel" child="left_wheel" origin_position="0.045 0.075 -0.025" origin_orientation="-1.5707 0 0" axis="0 0 1"/>
+    
+    <xacro:cylinder_link name="right_wheel" mass="0.05" radius="${wheel_radius}" length="0.02" material="yellow"/>    
+    <xacro:continuous_joint name="right_wheel" child="right_wheel" origin_position="-0.05 -0.075 -0.025" origin_orientation="-1.5707 0 0" axis="0 0 1"/>
+
+    <!-- ros2_control -->
+    <ros2_control name="tmp" type="system">
+      
+      <hardware>
+          <plugin>ros2_control_diffdrive_encoder_plugin/DiffDriveHardware</plugin>
+          <param name="motor_left_enable_pin">4</param>
+          <param name="motor_left_forward_pin">21</param>
+          <param name="motor_left_backward_pin">26</param>
+          <param name="motor_right_enable_pin">17</param>
+          <param name="motor_right_forward_pin">18</param>
+          <param name="motor_right_backward_pin">27</param>
+          <param name="max_motor_rotation_speed">18.0</param>
+
+          <param name="encoder_left_green_pin">22</param>
+          <param name="encoder_left_yellow_pin">23</param>
+          <param name="encoder_right_green_pin">24</param>
+          <param name="encoder_right_yellow_pin">25</param>
+
+      </hardware>
+
+      <joint name="left_wheel_joint">
+          <command_interface name="velocity">
+              <param name="min">-100</param>
+              <param name="max">100</param>
+          </command_interface>
+          <state_interface name="position"/>
+          <state_interface name="velocity"/>
+      </joint>
+      
+      <joint name="right_wheel_joint">
+          <command_interface name="velocity">
+              <param name="min">-100</param>
+              <param name="max">100</param>
+          </command_interface>
+          <state_interface name="position"/>
+          <state_interface name="velocity"/>
+      </joint>
+    
+    </ros2_control>
+
+  </xacro:macro>
+
+</robot>

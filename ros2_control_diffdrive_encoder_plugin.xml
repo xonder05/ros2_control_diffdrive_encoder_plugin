@@ -1,0 +1,9 @@
+<library path="ros2_control_diffdrive_encoder_plugin">
+  <class name="ros2_control_diffdrive_encoder_plugin/DiffDriveHardware"
+         type="ros2_control_diffdrive_encoder_plugin::DiffDriveHardware"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      
+    </description>
+  </class>
+</library>
