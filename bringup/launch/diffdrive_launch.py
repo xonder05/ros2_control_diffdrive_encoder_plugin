@@ -11,15 +11,12 @@ def generate_launch_description():
         'controllers.yaml'
     )
 
-    print("Controller config file path:", controller_config_file)
-
-
     manager_node = Node(
         package="controller_manager",
         executable="ros2_control_node",
         parameters=[controller_config_file],
         remappings=[
-            ('/diff_drive_controller/cmd_vel_unstamped', '/cmd_vel'),
+            ('/diff_drive_controller/cmd_vel', '/cmd_vel'),
             ('/controller_manager/robot_description', '/robot_description')
         ]
     )

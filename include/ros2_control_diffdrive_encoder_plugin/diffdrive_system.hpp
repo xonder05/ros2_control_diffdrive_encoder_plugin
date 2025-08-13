@@ -1,3 +1,10 @@
+/**
+ * @file diffdrive_system.hpp
+ * @brief ros2_control hardware interface for controlling two dc motors with encoders
+ * @author Daniel Onderka (xonder05)
+ * @date 08/2025
+ */
+
 #ifndef ROS2_CONTROL_DIFFDRIVE_ENCODER_PLUGIN__DIFFDRIVE_SYSTEM_HPP_
 #define ROS2_CONTROL_DIFFDRIVE_ENCODER_PLUGIN__DIFFDRIVE_SYSTEM_HPP_
 
@@ -25,54 +32,11 @@ namespace ros2_control_diffdrive_encoder_plugin
 class DiffDriveHardware : public hardware_interface::SystemInterface
 {
 
-struct params 
-{
-  uint8_t left_enable_pin = -1;
-  uint8_t left_forward_pin = -1;
-  uint8_t left_backward_pin = -1;
-  uint8_t right_enable_pin = -1;
-  uint8_t right_forward_pin = -1;
-  uint8_t right_backward_pin = -1;
-  
-  double max_speed = -1;
-
-  uint8_t left_encoder_green_pin = -1;
-  uint8_t left_encoder_yellow_pin = -1;
-  uint8_t right_encoder_green_pin = -1;
-  uint8_t right_encoder_yellow_pin = -1;
-};
-
-struct encoder_state 
-{
-  uint8_t left_encoder_green_state = 0;
-  uint8_t left_encoder_yellow_state = 0;
-  uint8_t right_encoder_green_state = 0;
-  uint8_t right_encoder_yellow_state = 0;
-  
-  int left_wheel_tics = 0;
-  int right_wheel_tics = 0;
-
-};
-
-// encoder values sequence 00 -> 01 -> 11 -> 10 -> 00 (or in reverse)
-// row == previous state, column == current state
-// value == direction (0 == invalid)
-int8_t encoder_state_to_direction_table[4][4] = {
-    { 0,  1, -1,  0},
-    {-1,  0,  0,  1},
-    { 1,  0,  0, -1},
-    { 0, -1,  1,  0}
-};
-
 public:
   RCLCPP_SHARED_PTR_DEFINITIONS(DiffDriveHardware)
 
   hardware_interface::CallbackReturn on_init(
     const hardware_interface::HardwareInfo & info) override;
-
-  // std::vector<hardware_interface::StateInterface> export_state_interfaces() override;
-
-  // std::vector<hardware_interface::CommandInterface> export_command_interfaces() override;
 
   hardware_interface::CallbackReturn on_activate(
     const rclcpp_lifecycle::State & previous_state) override;
@@ -88,21 +52,70 @@ public:
 
 private:
 
-  params params;
-  encoder_state state;
+  // will be filled with data from xacro
+  struct config
+  {
+    uint8_t motor_left_enable_pin = -1;
+    uint8_t motor_left_forward_pin = -1;
+    uint8_t motor_left_backward_pin = -1;
+    uint8_t motor_right_enable_pin = -1;
+    uint8_t motor_right_forward_pin = -1;
+    uint8_t motor_right_backward_pin = -1;
+    uint16_t motor_rpm = -1;
+    double motor_rad_s = -1;
+
+    uint8_t encoder_left_green_pin = -1;
+    uint8_t encoder_left_yellow_pin = -1;
+    uint8_t encoder_right_green_pin = -1;
+    uint8_t encoder_right_yellow_pin = -1;
+    uint16_t encoder_tics_per_rotation = -1;
+  };
+
+  struct encoder_state 
+  {
+    uint8_t left_green_callback_id = -1;
+    uint8_t left_yellow_callback_id = -1;
+    uint8_t right_green_callback_id = -1;
+    uint8_t right_yellow_callback_id = -1;
+
+    uint8_t left_green_state = 0;
+    uint8_t left_yellow_state = 0;
+    uint8_t right_green_state = 0;
+    uint8_t right_yellow_state = 0;
+    
+    int left_tics = 0;
+    int right_tics = 0;
+    
+    int left_tics_old = 0;
+    int right_tics_old = 0;
+  };
+
+  const double pi = 3.14159;
+
+  // encoder values sequence 00 -> 01 -> 11 -> 10 -> 00 (or in reverse)
+  // row == previous state, column == current state
+  // value == direction (0 == invalid)
+  const int8_t encoder_state_to_direction_table[4][4] = {
+    { 0,  1, -1,  0},
+    {-1,  0,  0,  1},
+    { 1,  0,  0, -1},
+    { 0, -1,  1,  0}
+  };
+
+  config config;
+  encoder_state encoder_state;
   int pigpio_deamon;
 
-  void encoder_callback(uint32_t gpio, uint32_t level, uint32_t tick);
+  void encoder_callback(uint32_t gpio, uint32_t level);
   
-  static void encoder_callback(int pi, uint32_t gpio, uint32_t level, uint32_t tick, void *userdata) 
+  static void encoder_callback(int /*pi*/, uint32_t gpio, uint32_t level, uint32_t /*tick*/, void *userdata) 
   {
       auto *self = static_cast<DiffDriveHardware*>(userdata);
-      self->encoder_callback(gpio, level, tick);
+      self->encoder_callback(gpio, level);
   }
 
 };
 
 }  // namespace ros2_control_diffdrive_encoder_plugin
-
 
 #endif  // ROS2_CONTROL_DIFFDRIVE_ENCODER_PLUGIN__DIFFDRIVE_SYSTEM_HPP_
